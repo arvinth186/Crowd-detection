@@ -1,4 +1,4 @@
-from fastapi import FastAPI,File,UploadFile
+from fastapi import FastAPI, File, UploadFile, Header
 from fastapi.middleware.cors import CORSMiddleware
 
 import cv2
@@ -11,28 +11,30 @@ app = FastAPI(title="Crowd Detection API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # allow all (OK for demo)
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
-with open("trained_model.json","r") as f:
+# Load trained threshold
+with open("trained_model.json", "r") as f:
     model = json.load(f)
 
-THRESHOLD = model['threshold']
+THRESHOLD = model["threshold"]
 
-last_frame = None
+# ✅ Store last frame PER SESSION
+last_frames = {}
 
 @app.get("/")
 def read_root():
     return {"message": "Welcome to the Crowd Detection API"}
 
 @app.post("/detect")
-async def detect_crowd_anomaly(file: UploadFile = File(...)):
-    global last_frame
-
+async def detect_crowd_anomaly(
+    file: UploadFile = File(...),
+    x_session_id: str = Header(...)
+):
     # Save uploaded image temporarily
     with tempfile.NamedTemporaryFile(delete=False) as tmp:
         contents = await file.read()
@@ -44,17 +46,19 @@ async def detect_crowd_anomaly(file: UploadFile = File(...)):
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-    # First frame → no detection
-    if last_frame is None:
-        last_frame = gray
+    # 🟡 First frame for this session
+    if x_session_id not in last_frames:
+        last_frames[x_session_id] = gray
         return {
             "status": "WAITING",
-            "message": "Need one more frame to compute motion"
+            "message": "First frame received. Upload next image from same scene."
         }
 
-    # Optical flow
+    # Optical flow between consecutive frames
+    prev_gray = last_frames[x_session_id]
+
     flow = cv2.calcOpticalFlowFarneback(
-        last_frame, gray,
+        prev_gray, gray,
         None,
         0.5, 3, 15, 3, 5, 1.2, 0
     )
@@ -62,12 +66,10 @@ async def detect_crowd_anomaly(file: UploadFile = File(...)):
     magnitude, _ = cv2.cartToPolar(flow[..., 0], flow[..., 1])
     motion_score = float(np.mean(magnitude))
 
-    last_frame = gray
+    # Update last frame
+    last_frames[x_session_id] = gray
 
-    if motion_score > THRESHOLD:
-        status = "ANOMALY"
-    else:
-        status = "NORMAL"
+    status = "ANOMALY" if motion_score > THRESHOLD else "NORMAL"
 
     return {
         "status": status,
