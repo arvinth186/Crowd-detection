@@ -1,17 +1,18 @@
-# Ignore datasets
-UCSD_Anomaly_Dataset.v1p2/
-
-# Ignore cache
+# Python
 __pycache__/
 *.pyc
+.env
+.venv/
 
-# Ignore local test images
+# Datasets (never push)
+UCSD_Anomaly_Dataset.v1p2/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Images
 *.jpg
 *.png
 *.webp
-
-# Ignore notebooks output
-.ipynb_checkpoints/
-
-# Ignore environment files
-.env
+*.tif
