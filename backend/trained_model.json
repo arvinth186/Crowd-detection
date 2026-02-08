@@ -1,0 +1,9 @@
+{
+    "model_type": "optical_flow_statistical",
+    "mean_motion": 0.15539763867855072,
+    "std_motion": 0.06265358626842499,
+    "threshold": 0.3433583974838257,
+    "k_value": 3,
+    "dataset": "UCSDped1",
+    "description": "Baseline crowd anomaly detection model"
+}
