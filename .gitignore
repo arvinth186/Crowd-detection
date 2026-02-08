@@ -1,0 +1,17 @@
+# Ignore datasets
+UCSD_Anomaly_Dataset.v1p2/
+
+# Ignore cache
+__pycache__/
+*.pyc
+
+# Ignore local test images
+*.jpg
+*.png
+*.webp
+
+# Ignore notebooks output
+.ipynb_checkpoints/
+
+# Ignore environment files
+.env
